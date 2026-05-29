@@ -16,16 +16,28 @@ import matplotlib.pyplot as plt  # noqa: E402
 OUTPUT_DIR = Path("plots/coastlines")
 REPEATS = 10
 CARTOPY_RESOLUTIONS = ("110m", "50m", "10m")
-PYGMT_RESOLUTIONS = ("crude", "low", "intermediate")
+PYGMT_RESOLUTIONS = ("crude", "low", "intermediate", "high", "full")
 LAND_COLOR = "#cccccc"
 WATER_COLOR = "#b9d9ea"
 
 
-def plot_cartopy(resolution: str):
+def plot_cartopy_global(resolution: str):
     """Create a simple global coastline plot with cartopy."""
     fig = plt.figure(figsize=(6, 4), dpi=300)
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Robinson())
     ax.set_global()
+    ax.add_feature(cfeature.LAND, facecolor=LAND_COLOR)
+    ax.add_feature(cfeature.OCEAN, facecolor=WATER_COLOR)
+    ax.coastlines(resolution=resolution, linewidth=0.5)
+    ax.gridlines(color="0.8", linewidth=0.4)
+    return fig
+
+
+def plot_cartopy_regional(resolution: str):
+    """Create a regional coastline plot with cartopy."""
+    fig = plt.figure(figsize=(6, 4), dpi=300)
+    ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator())
+    ax.set_extent([110, 160, -45, -10], crs=ccrs.PlateCarree())
     ax.add_feature(cfeature.LAND, facecolor=LAND_COLOR)
     ax.add_feature(cfeature.OCEAN, facecolor=WATER_COLOR)
     ax.coastlines(resolution=resolution, linewidth=0.5)
@@ -39,12 +51,26 @@ def save_cartopy(fig, output: Path) -> None:
     plt.close(fig)
 
 
-def plot_pygmt(resolution: str) -> pygmt.Figure:
+def plot_pygmt_global(resolution: str) -> pygmt.Figure:
     """Create a simple global coastline plot with PyGMT."""
     fig = pygmt.Figure()
     fig.coast(
-        region="g",
+        region="d",
         projection="R6i",
+        resolution=resolution,
+        land=LAND_COLOR,
+        water=WATER_COLOR,
+        shorelines="1/0.5p,black",
+        frame="afg",
+    )
+    return fig
+
+def plot_pygmt_regional(resolution: str) -> pygmt.Figure:
+    """Create a regional coastline plot with PyGMT."""
+    fig = pygmt.Figure()
+    fig.coast(
+        region=[110, 160, -45, -10],
+        projection="M6i",
         resolution=resolution,
         land=LAND_COLOR,
         water=WATER_COLOR,
@@ -109,12 +135,12 @@ def main() -> None:
     print(f"Running {REPEATS} timed run(s) per backend")
     print(f"Writing PNG files to {OUTPUT_DIR}")
 
-    print("Benchmarking cartopy...", flush=True)
+    print("Benchmarking cartopy global...", flush=True)
     for resolution in CARTOPY_RESOLUTIONS:
         print(f"Resolution: {resolution}")
         plot_timings, save_timings = benchmark(
-            name=f"cartopy_{resolution}",
-            plot_func=plot_cartopy,
+            name=f"cartopy_global_{resolution}",
+            plot_func=plot_cartopy_global,
             save_func=save_cartopy,
             output_dir=OUTPUT_DIR,
             repeats=REPEATS,
@@ -123,12 +149,27 @@ def main() -> None:
         print(format_summary("cartopy plot", plot_timings))
         print(format_summary("cartopy savefig", save_timings))
 
-    print("Benchmarking pygmt...", flush=True)
-    for resolution in PYGMT_RESOLUTIONS:
+    print("Benchmarking cartopy regional...", flush=True)
+    for resolution in CARTOPY_RESOLUTIONS[2:]:
         print(f"Resolution: {resolution}")
         plot_timings, save_timings = benchmark(
-            name=f"pygmt_{resolution}",
-            plot_func=plot_pygmt,
+            name=f"cartopy_regional_{resolution}",
+            plot_func=plot_cartopy_regional,
+            save_func=save_cartopy,
+            output_dir=OUTPUT_DIR,
+            repeats=REPEATS,
+            resolution=resolution,
+        )
+        print(format_summary("cartopy plot", plot_timings))
+        print(format_summary("cartopy savefig", save_timings))
+
+
+    print("Benchmarking pygmt global...", flush=True)
+    for resolution in PYGMT_RESOLUTIONS[0:3]:
+        print(f"Resolution: {resolution}")
+        plot_timings, save_timings = benchmark(
+            name=f"pygmt_global_{resolution}",
+            plot_func=plot_pygmt_global,
             save_func=save_pygmt,
             output_dir=OUTPUT_DIR,
             repeats=REPEATS,
@@ -136,6 +177,21 @@ def main() -> None:
         )
         print(format_summary("pygmt plot", plot_timings))
         print(format_summary("pygmt savefig", save_timings))
+
+    print("Benchmarking pygmt regional...", flush=True)
+    for resolution in PYGMT_RESOLUTIONS[2:]:
+        print(f"Resolution: {resolution}")
+        plot_timings, save_timings = benchmark(
+            name=f"pygmt_regional_{resolution}",
+            plot_func=plot_pygmt_regional,
+            save_func=save_pygmt,
+            output_dir=OUTPUT_DIR,
+            repeats=REPEATS,
+            resolution=resolution,
+        )
+        print(format_summary("pygmt plot", plot_timings))
+        print(format_summary("pygmt savefig", save_timings))
+
 
 
 if __name__ == "__main__":
