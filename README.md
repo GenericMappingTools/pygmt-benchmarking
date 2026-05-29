@@ -14,17 +14,24 @@ conda activate pygmt-benchmarking
 
 ## Benchmarks
 
-The benchmarks were run on a MacBook Pro (Apple M5, 32GB RAM) running macOS Tahoe 26.1.
+The benchmarks were run on a MacBook Pro (Apple M5, 32GB RAM) running macOS
+Tahoe 26.1.
 
 ### Benchmark 1: Diamonds Dataset
 
-The diamonds benchmark compares PyGMT and matplotlib when plotting the seaborn diamonds
-dataset.
+The diamonds benchmark compares PyGMT and matplotlib when plotting the seaborn
+diamonds dataset. It reports plotting time and `savefig` time separately.
 
-| Mode | matplotlib | PyGMT | Ratio |
+Run the benchmark:
+
+```bash
+python benchmarks/bench_matplotlib_diamonds.py
+```
+
+| Step | matplotlib | PyGMT | PyGMT / matplotlib |
 | --- | --- | --- | --- |
-| Plot | 0.0184s | 0.0299s | 0.6x |
-| Plot and Save | 0.1213s | 0.8311s | 0.15x |
+| Plotting | 0.021 | 0.028 | 0.75x |
+| Savefig | 0.13 | 1.135 | 0.11x |
 
 ## License
 
