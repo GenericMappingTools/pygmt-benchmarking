@@ -13,20 +13,10 @@ import pygmt
 import matplotlib.pyplot as plt  # noqa: E402
 
 
-BACKENDS = ("cartopy", "pygmt")
 OUTPUT_DIR = Path("plots/coastlines")
 REPEATS = 10
-RESOLUTION = "low"
-CARTOPY_RESOLUTIONS = {
-    "low": "110m",
-    "medium": "50m",
-    "high": "10m",
-}
-PYGMT_RESOLUTIONS = {
-    "low": "c",
-    "medium": "l",
-    "high": "i",
-}
+CARTOPY_RESOLUTIONS = ("110m", "50m", "10m")
+PYGMT_RESOLUTIONS = ("crude", "low", "intermediate")
 LAND_COLOR = "#cccccc"
 WATER_COLOR = "#b9d9ea"
 
@@ -38,10 +28,7 @@ def plot_cartopy(resolution: str):
     ax.set_global()
     ax.add_feature(cfeature.LAND, facecolor=LAND_COLOR)
     ax.add_feature(cfeature.OCEAN, facecolor=WATER_COLOR)
-    ax.coastlines(
-        resolution=CARTOPY_RESOLUTIONS[resolution],
-        linewidth=0.5,
-    )
+    ax.coastlines(resolution=resolution, linewidth=0.5)
     ax.gridlines(color="0.8", linewidth=0.4)
     return fig
 
@@ -57,8 +44,8 @@ def plot_pygmt(resolution: str) -> pygmt.Figure:
     fig = pygmt.Figure()
     fig.coast(
         region="g",
-        projection="R15c",
-        resolution=PYGMT_RESOLUTIONS[resolution],
+        projection="R6i",
+        resolution=resolution,
         land=LAND_COLOR,
         water=WATER_COLOR,
         shorelines="1/0.5p,black",
@@ -119,30 +106,36 @@ def format_summary(name: str, timings: list[float]) -> str:
 
 def main() -> None:
     """Run the coastline plotting benchmark."""
-    plotters = {
-        "cartopy": plot_cartopy,
-        "pygmt": plot_pygmt,
-    }
-    savers = {
-        "cartopy": save_cartopy,
-        "pygmt": save_pygmt,
-    }
-
     print(f"Running {REPEATS} timed run(s) per backend")
-    print(f"Using {RESOLUTION} coastline resolution")
     print(f"Writing PNG files to {OUTPUT_DIR}")
-    for backend in BACKENDS:
-        print(f"Benchmarking {backend}...", flush=True)
+
+    print("Benchmarking cartopy...", flush=True)
+    for resolution in CARTOPY_RESOLUTIONS:
+        print(f"Resolution: {resolution}")
         plot_timings, save_timings = benchmark(
-            name=f"{backend}_{RESOLUTION}",
-            plot_func=plotters[backend],
-            save_func=savers[backend],
+            name=f"cartopy_{resolution}",
+            plot_func=plot_cartopy,
+            save_func=save_cartopy,
             output_dir=OUTPUT_DIR,
             repeats=REPEATS,
-            resolution=RESOLUTION,
+            resolution=resolution,
         )
-        print(format_summary(f"{backend} plot", plot_timings))
-        print(format_summary(f"{backend} savefig", save_timings))
+        print(format_summary("cartopy plot", plot_timings))
+        print(format_summary("cartopy savefig", save_timings))
+
+    print("Benchmarking pygmt...", flush=True)
+    for resolution in PYGMT_RESOLUTIONS:
+        print(f"Resolution: {resolution}")
+        plot_timings, save_timings = benchmark(
+            name=f"pygmt_{resolution}",
+            plot_func=plot_pygmt,
+            save_func=save_pygmt,
+            output_dir=OUTPUT_DIR,
+            repeats=REPEATS,
+            resolution=resolution,
+        )
+        print(format_summary("pygmt plot", plot_timings))
+        print(format_summary("pygmt savefig", save_timings))
 
 
 if __name__ == "__main__":
